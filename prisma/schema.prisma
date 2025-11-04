@@ -1,0 +1,30 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL") // Agora ele vai ler a URL correta do .env
+}
+
+// Modelo para os Usuários (Admin)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+
+  links     Link[] // Um usuário pode ter muitos links
+}
+
+// Modelo para os Links
+model Link {
+  id     String @id @default(cuid())
+  title  String // Título do botão (ex: "Meu Portfólio")
+  url    String // URL de destino (ex: "https://...")
+
+  // Relacionamento: Este Link pertence a um User
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
