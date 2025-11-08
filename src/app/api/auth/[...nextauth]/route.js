@@ -2,8 +2,8 @@ import NextAuth from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-
 import CredentialsProvider from 'next-auth/providers/credentials';
+
 const prisma = new PrismaClient();
 
 export const authOptions = {
@@ -16,11 +16,11 @@ export const authOptions = {
                 email: { label: "Email", type: "text" },
                 password: { label: "Password", type: "password" }
             },
-
             async authorize(credentials) {
                 if (!credentials.email || !credentials.password) {
                     throw new Error('Por favor, forneça e-mail e senha.');
                 }
+
                 const user = await prisma.user.findUnique({
                     where: { email: credentials.email }
                 });
@@ -28,6 +28,7 @@ export const authOptions = {
                 if (!user || !user.password) {
                     throw new Error('Usuário não encontrado ou não cadastrado com senha.');
                 }
+
                 const isPasswordCorrect = await bcrypt.compare(
                     credentials.password,
                     user.password
@@ -36,7 +37,7 @@ export const authOptions = {
                 if (!isPasswordCorrect) {
                     throw new Error('Senha inválida.');
                 }
-
+                
                 return user;
             }
         })
@@ -46,12 +47,29 @@ export const authOptions = {
         strategy: 'jwt',
     },
 
+    callbacks: {
+        async jwt({ token, user }) {
+            if (user) {
+                token.id = user.id;
+                token.role = user.role;
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            if (session.user) {
+                session.user.id = token.id;
+                session.user.role = token.role;
+            }
+            return session;
+        },
+    },
+
     secret: process.env.AUTH_SECRET,
 
     pages: {
-        signIn: '/login',
+        signIn: '/login', 
     },
 };
 
-const handler = NextAuth(authOptions);
+const handler = NextAuth(authOptions); 
 export { handler as GET, handler as POST };
